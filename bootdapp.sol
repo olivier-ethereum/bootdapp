@@ -8,6 +8,7 @@ contract Bootdapp
 		address dapp;
 		uint blockExpire;
 		uint trusted;
+		address validator;
 	}
 
 	struct StValidator
@@ -26,12 +27,32 @@ contract Bootdapp
 		_owner=msg.sender;		
 	}
 
+	function TransferOwnership(string name,address to)
+	{
+		StRecord rec=LstReg[name];
+
+		if (msg.sender!=rec.owner)
+			return;
+		
+		rec.owner=to;
+	}
+
+	function Renew(string name)
+	{
+		StRecord rec=LstReg[name];
+
+		if (msg.sender!=rec.owner)
+			return;
+			
+		rec.blockExpire=currentBlock+30*24*3600/12;
+	}
+
 	function Register(string name,address dapp)
 	{
-		if (LstReg[name].blockExpire>currentBlock)
-			return;
-
 		StRecord rec=LstReg[name];
+		
+		if (rec.blockExpire>currentBlock)
+			return;
 
 		rec.owner=msg.sender;
 		rec.blockExpire=currentBlock+30*24*3600/12;
@@ -41,18 +62,20 @@ contract Bootdapp
 
 	function Validate(string name)
 	{
-		if (LstReg[name].blockExpire<currentBlock)
+		var record=LstReg[name];
+		if (record.blockExpire<currentBlock)
 			return;
 
 		if ((LstValidator[msg.sender]<1) && (msg.sender!=_owner))
 			return;
 
-		LstReg[name].trusted=1;
+		record.trusted=1;
+		record.father=msg.sender;
 	}
 
 	function SetValidatorLevel(address addrValidator,uint level)
 	{
-		if ((LstValidator[msg.sender]<=level) && (msg.sender!=_owner))
+		if ((LstValidator[msg.sender].level<=level) && (msg.sender!=_owner))
 			return;
 
 		var validator=LstValidator[addrvalidator];
