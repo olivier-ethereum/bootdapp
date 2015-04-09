@@ -1,13 +1,15 @@
+// By Olivier, for ethereum
+// If you don't understand a bit, and get lost here by random events :
+// Language is Solidity, paradigm is Ethereum, and you have to take a look at what it is, because it is the next revolution
+
 contract Bootdapp
 {
-	address _owner;
-
 	struct StRecord
 	{
 		address owner;
 		address dapp;
 		uint blockExpire;
-		uint trusted;
+		bool trusted;
 		address validator;
 	}
 
@@ -18,33 +20,13 @@ contract Bootdapp
 	}
 
 
-	mapping(address=>uint) public LstValidator;
+	mapping(address=>StValidator) public LstValidator;
 
-	mapping(string=>StRecord) public LstReg;
+	mapping(string32=>StRecord) public LstReg;
 
 	function Bootdapp()
 	{
-		_owner=msg.sender;		
-	}
-
-	function TransferOwnership(string name,address to)
-	{
-		StRecord rec=LstReg[name];
-
-		if (msg.sender!=rec.owner)
-			return;
-		
-		rec.owner=to;
-	}
-
-	function Renew(string name)
-	{
-		StRecord rec=LstReg[name];
-
-		if (msg.sender!=rec.owner)
-			return;
-			
-		rec.blockExpire=currentBlock+30*24*3600/12;
+		LstValidator[msg.sender].level=100;
 	}
 
 	function Register(string name,address dapp)
@@ -55,15 +37,37 @@ contract Bootdapp
 			return;
 
 		rec.owner=msg.sender;
-		rec.blockExpire=currentBlock+30*24*3600/12;
+		rec.blockExpire=block.number+30*24*3600/12;
 		rec.trusted=0;
 		rec.dapp=dapp;
+	}
+
+	function Renew(string32 name)
+	{
+		StRecord rec=LstReg[name];
+
+		if (msg.sender!=rec.owner)
+			return;
+			
+		rec.blockExpire=block.number+30*24*3600/12;
+	}
+
+	function TransferOwnership(string32 name,address to)
+	{
+		StRecord rec=LstReg[name];
+		if (rec==StRecord(0))
+			return;
+
+		if (msg.sender!=rec.owner)
+			return;
+		
+		rec.owner=to;
 	}
 
 	function Validate(string name)
 	{
 		var record=LstReg[name];
-		if (record.blockExpire<currentBlock)
+		if (record.blockExpire<block.number)
 			return;
 
 		if ((LstValidator[msg.sender]<1) && (msg.sender!=_owner))
@@ -75,20 +79,24 @@ contract Bootdapp
 
 	function SetValidatorLevel(address addrValidator,uint level)
 	{
-		if ((LstValidator[msg.sender].level<=level) && (msg.sender!=_owner))
+		var validatorFrom=LstValidator[msg.sender];
+
+		if (validatorFrom==StValidator(0))
 			return;
 
-		var validator=LstValidator[addrvalidator];
-
-		if ((validator.level>=LstValidator[msg.sender].level) && (msg.sender!=_owner))
+		if (validatorFrom.level<=level) 
 			return;
 
-		if (level>=validator.level)
+		var validatorTo=LstValidator[addrvalidator];
+
+		if (validatorTo.level>=validatorFrom.level)
+			return;
+
+		if (level>=validatorTo.level)
 		{
 			validator.father=msg.sender;	
 		}
 
-		validator.level=level;
-
+		validatorTo.level=level;
 	}
 }
