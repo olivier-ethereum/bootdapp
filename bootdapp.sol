@@ -11,6 +11,7 @@ contract Bootdapp
 		uint blockExpire;
 		bool trusted;
 		address validator;
+		bytes32 name;
 	}
 
 	struct StValidator
@@ -22,27 +23,31 @@ contract Bootdapp
 
 	mapping(address=>StValidator) public LstValidator;
 
-	mapping(string32=>StRecord) public LstReg;
+	mapping(bytes32=>StRecord) public LstReg;
 
 	function Bootdapp()
 	{
 		LstValidator[msg.sender].level=100;
 	}
 
-	function Register(string name,address dapp)
+	function Register(bytes32 name,address dapp)
 	{
-		StRecord rec=LstReg[name];
+		var rec=LstReg[name];
 		
-		if (rec.blockExpire>currentBlock)
+		if (rec!=StRecord(0))
+			return;
+
+		if (rec.blockExpire>block.number)
 			return;
 
 		rec.owner=msg.sender;
 		rec.blockExpire=block.number+30*24*3600/12;
 		rec.trusted=0;
 		rec.dapp=dapp;
+		rec.name=name;
 	}
 
-	function Renew(string32 name)
+	function Renew(bytes32 name)
 	{
 		StRecord rec=LstReg[name];
 
@@ -52,7 +57,7 @@ contract Bootdapp
 		rec.blockExpire=block.number+30*24*3600/12;
 	}
 
-	function TransferOwnership(string32 name,address to)
+	function TransferOwnership(bytes32 name,address to)
 	{
 		StRecord rec=LstReg[name];
 		if (rec==StRecord(0))
@@ -64,17 +69,22 @@ contract Bootdapp
 		rec.owner=to;
 	}
 
-	function Validate(string name)
+	function Validate(bytes32 name)
 	{
+		var validatorFrom=LstValidator[msg.sender];
+
+		if (validatorFrom==StValidator(0))
+			return;
+
+		if (validatorFrom.level<1)
+			return;
+
 		var record=LstReg[name];
 		if (record.blockExpire<block.number)
 			return;
 
-		if ((LstValidator[msg.sender]<1) && (msg.sender!=_owner))
-			return;
-
 		record.trusted=1;
-		record.father=msg.sender;
+		record.validator=msg.sender;
 	}
 
 	function SetValidatorLevel(address addrValidator,uint level)
@@ -87,14 +97,14 @@ contract Bootdapp
 		if (validatorFrom.level<=level) 
 			return;
 
-		var validatorTo=LstValidator[addrvalidator];
+		var validatorTo=LstValidator[addrValidator];
 
 		if (validatorTo.level>=validatorFrom.level)
 			return;
 
 		if (level>=validatorTo.level)
 		{
-			validator.father=msg.sender;	
+			validatorTo.father=msg.sender;	
 		}
 
 		validatorTo.level=level;
